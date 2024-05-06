@@ -54,9 +54,9 @@ class Environment(object):
 
 
 
-def run_trial(q=10, theta=0.5, pred_steps=10, duration=10):
+def run_trial(q=10, theta=0.5, pred_steps=10, duration=10, neural=False, seed=0):
 
-    model = nengo.Network()
+    model = nengo.Network(seed=seed)
     with model:
         env = Environment(pred_steps=pred_steps)
 
@@ -74,7 +74,12 @@ def run_trial(q=10, theta=0.5, pred_steps=10, duration=10):
     
         nengo.Connection(env_node[:2], llp.z, synapse=None)
         nengo.Connection(env_node[:2], c_lmu, synapse=None)
-        nengo.Connection(c_lmu, llp.c, synapse=None)
+        if neural:
+            ens = nengo.networks.EnsembleArray(20,q*2,ens_dimensions=1)
+            nengo.Connection(c_lmu, ens.input, synapse=None)
+            nengo.Connection(ens.output, llp.c)
+        else:
+            nengo.Connection(c_lmu, llp.c, synapse=None)
     
         pred_x = nengo.Node(size_in=pred_steps)
         nengo.Connection(llp.Z[:q], pred_x, transform=llp.get_weights_for_delays(np.linspace(0, 1, pred_steps)), synapse=None)
